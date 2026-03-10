@@ -1,1 +1,1 @@
-# server1
+# my-live-player
