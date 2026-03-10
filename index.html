@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Test Lab - ผู้เฒ่าพเนจร</title>
+
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --card-bg: #1e1e1e;
+            --accent: #00d2ff;
+            --text-main: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container { width: 100%; max-width: 900px; }
+
+        h2 { color: var(--accent); margin-bottom: 5px; text-align: center; }
+        .info { font-size: 0.8em; color: #777; margin-bottom: 20px; text-align: center; }
+
+        /* Screen Player */
+        #player-wrapper {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 15px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            margin-bottom: 25px;
+        }
+
+        /* Control Panel */
+        .panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .label {
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #555;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            border-left: 3px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        button {
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 12px 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        button:hover { background: #3a3a3a; border-color: var(--accent); }
+        button.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        /* Console Log for Testing */
+        #console {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            padding: 10px;
+            height: 60px;
+            overflow-y: auto;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🧪 Stream Test Lab</h2>
+    <div class="info">ทดสอบการเล่นไฟล์ Cinemax.m3u8 (ระบบ Multi-Protocol)</div>
+
+    <div id="player-wrapper">
+        <div id="status-display">Ready to Test</div>
+    </div>
+
+    <div class="panel">
+        <div class="label">Web Player Test (เล่นในเบราว์เซอร์)</div>
+        <div class="grid">
+            <button onclick="testHls(this)">HLS.js</button>
+            <button onclick="testVideoJs(this)">Video.js</button>
+            <button onclick="testJw(this)">JW Player</button>
+        </div>
+
+        <div class="label">App Intent Test (ทดสอบบน Android เท่านั้น)</div>
+        <div class="grid">
+            <button onclick="appLaunch('mx', this)">MX Player</button>
+            <button onclick="appLaunch('vlc', this)">VLC Player</button>
+            <button onclick="appLaunch('iptv', this)">IPTV Pro</button>
+            <button onclick="appLaunch('wise', this)">Wiseplay</button>
+        </div>
+
+        <div class="label">Console Log</div>
+        <div id="console">Initializing test environment...</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+<script src="https://content.jwplatform.com/libraries/SAHhwvZq.js"></script>
+
+<script>
+    const streamUrl = "https://wandering-oldman.github.io/server1/server1-movies-cinemax.m3u8";
+    const wrapper = document.getElementById('player-wrapper');
+    const logBox = document.getElementById('console');
+
+    function log(msg) {
+        const time = new Date().toLocaleTimeString();
+        logBox.innerHTML = `[${time}] ${msg}<br>` + logBox.innerHTML;
+    }
+
+    function resetUI(btn) {
+        document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        wrapper.innerHTML = '';
+        if (window.vjs) { window.vjs.dispose(); window.vjs = null; }
+    }
+
+    // --- Test Functions ---
+    function testHls(btn) {
+        resetUI(btn);
+        log("Testing HLS.js...");
+        const v = document.createElement('video');
+        v.controls = true; v.autoplay = true;
+        wrapper.appendChild(v);
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(streamUrl);
+            hls.attachMedia(v);
+            log("HLS.js: Manifest Loaded.");
+        }
+    }
+
+    function testVideoJs(btn) {
+        resetUI(btn);
+        log("Testing Video.js...");
+        const v = document.createElement('video');
+        v.id = 'vjs-player';
+        v.className = 'video-js vjs-default-skin';
+        wrapper.appendChild(v);
+        window.vjs = videojs('vjs-player', {
+            fluid: true, controls: true, autoplay: true,
+            sources: [{ src: streamUrl, type: 'application/x-mpegURL' }]
+        });
+    }
+
+    function testJw(btn) {
+        resetUI(btn);
+        log("Testing JW Player...");
+        const d = document.createElement('div');
+        d.id = 'jw-box';
+        wrapper.appendChild(d);
+        jwplayer("jw-box").setup({
+            file: streamUrl, width: "100%", aspectratio: "16:9", autostart: true
+        });
+    }
+
+    function appLaunch(type, btn) {
+        resetUI(btn);
+        const clean = streamUrl.replace(/^https?:\/\//, '');
+        let intent = "";
+
+        switch(type) {
+            case 'mx': 
+                intent = `intent://${clean}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;scheme=https;end`;
+                break;
+            case 'vlc':
+                intent = `vlc://${streamUrl}`;
+                break;
+            case 'iptv':
+                intent = `intent://${clean}#Intent;package=ru.iptvremote.android.iptv.pro;type=video/*;scheme=https;end`;
+                break;
+            case 'wise':
+                intent = `intent://${clean}#Intent;package=com.wiseplay;type=video/*;scheme=https;end`;
+                break;
+        }
+
+        log(`Launching ${type.toUpperCase()}...`);
+        window.location.href = intent;
+    }
+</script>
+
+</body>
+</html>
